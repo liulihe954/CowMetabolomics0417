@@ -173,12 +173,12 @@ cor(Results_metab_cor$change$clst_coef_change,Results_metab_cor$change$proportio
 
 
 
-values in the columns of datS are independent. 
-This allows us to find objects (rows) with consistently high (or low) values across the columns.
-he function rankPvalue can be used to calculate a p-value for this occurrence.
-central limit theorem (referred to as percentile rank method)
+# values in the columns of datS are independent. 
+# This allows us to find objects (rows) with consistently high (or low) values across the columns.
+# the function rankPvalue can be used to calculate a p-value for this occurrence.
+# central limit theorem (referred to as percentile rank method)
 
-defined as the sum of the percentile ranks
+# defined as the sum of the percentile ranks
 
 
 

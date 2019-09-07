@@ -41,6 +41,13 @@ names(up_LF_LCL_isthmus) = c("ensembl_gene_id","Gene Symbol","Base Mean","log2 F
 up_SF_SCL_isthmus = read.csv("up_SF_SCL_isthmus.txt",sep = "\t")
 names(up_SF_SCL_isthmus) = c("ensembl_gene_id","Gene Symbol","Base Mean","log2 Fold Change","P value","P adj")
 
+dim(up_LF_LCL_ampulla)
+dim(up_SF_SCL_ampulla)
+dim(up_LF_LCL_isthmus)
+dim(up_SF_SCL_isthmus)
+
+
+
 # get mart (database)
 mart <- useMart("ENSEMBL_MART_ENSEMBL")
 mart <- useDataset("btaurus_gene_ensembl", mart)
