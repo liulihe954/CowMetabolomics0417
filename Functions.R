@@ -61,6 +61,8 @@ get_NC_cor = function(datExpr1,datExpr2,r_thres,p_thres){
   Results = list(NC1 = NC1, NC2 = NC2, cormatr_ref = cormatr1, cormatr_test = cormatr2, pvalue1 = pvalmatr1,pvalue2 = pvalmatr2 ,adjmatr_ref = adjmatr1, adjmatr_test = adjmatr2, basic = basic_results,change = change_results)
   return(Results)
 }
+
+
 get_NC_spearman = function(datExpr1,datExpr2,r_thres,p_thres){
   options(warn = -1)
   #calcu of matrx1
