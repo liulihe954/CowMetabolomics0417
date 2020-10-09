@@ -1,23 +1,8 @@
-# install biomart and dataset
-#install.packages("biomaRt");require("biomaRt")
 setwd("/Users/liulihe95/Desktop/metabolomics_0417/")
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("biomaRt")
-BiocManager::install("gage")
-BiocManager::install("pathview")
-BiocManager::install("KEGGgraph")
-# ruta metabolicas
-#dir.create("path")
-#setwd("path")
+library(biomaRt)
 library(pathview)
 library(KEGGgraph)
 library(gage)
-
-require("biomaRt")
-require("gage")
-
-
 ##prepare pathway - - - bos taurus
 sdb = kegg.gsets(species = "bta", id.type = "kegg", check.new=FALSE)
 kegg.gs = sdb$kg.sets[sdb$sigmet.id]
@@ -227,7 +212,6 @@ for (i in c(1:length(all_pathway))){
 }
 
 noquote(Contigency_table_allpath)
-`Overlap_genes
 
 
 which(c(1:3,8) == c(1:4))
@@ -330,8 +314,8 @@ pathview(gene.data = ser, pathway.id = "00350", species = "bta",
 #setdiff(IDs1,annot1$ensembl_gene_id)
 #dim(annot1)
 
-## demo codes
 
+## demo codes
 ids1 <- as.vector(row.names(lrt$table))
 annot1 <- getBM(attributes=c("ensembl_gene_id", "entrezgene",
                              "external_gene_name"),
