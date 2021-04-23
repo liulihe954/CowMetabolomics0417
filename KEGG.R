@@ -3,13 +3,26 @@ library(biomaRt)
 library(pathview)
 library(KEGGgraph)
 library(gage)
+library(EGSEAdata)
+
+# BiocManager::install("EGSEAdata")
+# BiocManager::install("EnrichmentBrowser")
+# BiocManager::install("EGSEA")
+
+library(EnrichmentBrowser)
+library(EGSEAdata)
+library(EGSEA)
+
 ##prepare pathway - - - bos taurus
 sdb = kegg.gsets(species = "bta", id.type = "kegg", check.new=FALSE)
-kegg.gs = sdb$kg.sets[sdb$sigmet.id]
+kegg.gs = getGenesets(org="bta", db="kegg")
 
-length(sdb$kg.sets)
-dim(kegg.gs)
+length(kegg.gs) #325
+#remove mmu04215 entry because it will causing pathwayview pop an error
+# kegg.gs[grep("bta04723", names(kegg.gs))]
 
+#             map00591  	Linoleic acid metabolism
+#             map00592
 
 ###################################
 ### dataset prepare for matching 
@@ -26,7 +39,7 @@ names(up_LF_LCL_isthmus) = c("ensembl_gene_id","Gene Symbol","Base Mean","log2 F
 up_SF_SCL_isthmus = read.csv("up_SF_SCL_isthmus.txt",sep = "\t")
 names(up_SF_SCL_isthmus) = c("ensembl_gene_id","Gene Symbol","Base Mean","log2 Fold Change","P value","P adj")
 
-dim(up_LF_LCL_ampulla)
+summary(up_LF_LCL_ampulla$`P adj`)
 dim(up_SF_SCL_ampulla)
 dim(up_LF_LCL_isthmus)
 dim(up_SF_SCL_isthmus)
@@ -36,17 +49,12 @@ dim(up_SF_SCL_isthmus)
 # get mart (database)
 mart <- useMart("ENSEMBL_MART_ENSEMBL")
 mart <- useDataset("btaurus_gene_ensembl", mart)
-
-#str(up_SF_SCL_isthmus)
-
 ### up_LF_LCL_ampulla.txt
 IDs1 = as.vector(up_LF_LCL_ampulla$ensembl_gene_id) #ID in our dataset
-
 annot1 = getBM(attributes=c("ensembl_gene_id","entrezgene_id","external_gene_name"),
                filters="ensembl_gene_id",
                values=IDs1,
                mart=mart)
-
 listAttributes(mart)[,1][grepl("entrezgene",listAttributes(mart)[,1])]
 
 # Problem? Question? Confusion!
@@ -65,17 +73,17 @@ annot1[annot1$ensembl_gene_id== "ENSBTAG00000027854",]
 
 ### up_LF_LCL_isthmus.txt
 IDs2 = as.vector(up_LF_LCL_isthmus$ensembl_gene_id)
-annot2 = getBM(attributes=c("ensembl_gene_id", "entrezgene",
+annot2 = getBM(attributes=c("ensembl_gene_id", "entrezgene_id",
                             "external_gene_name"),
                filters="ensembl_gene_id", values=IDs2, mart=mart)
 ### up_SF_SCL_ampulla.txt
 IDs3 = as.vector(up_SF_SCL_ampulla$ensembl_gene_id)
-annot3 = getBM(attributes=c("ensembl_gene_id", "entrezgene",
+annot3 = getBM(attributes=c("ensembl_gene_id", "entrezgene_id",
                             "external_gene_name"),
                filters="ensembl_gene_id", values=IDs3, mart=mart)
 ### up_SF_SCL_isthmus.txt
 IDs4 = as.vector(up_SF_SCL_isthmus$ensembl_gene_id)
-annot4 = getBM(attributes=c("ensembl_gene_id", "entrezgene",
+annot4 = getBM(attributes=c("ensembl_gene_id", "entrezgene_id",
                             "external_gene_name"),
                filters="ensembl_gene_id", values=IDs4, mart=mart)
 
@@ -92,6 +100,10 @@ annot4 = getBM(attributes=c("ensembl_gene_id", "entrezgene",
 #              map00071  	Fatty acid degradation
 #              map01212  	Fatty acid metabolism
 #
+# C16.2.OH  - H 3-Hydroxyhexadecadienoylcarnitine
+# PC.aa.C36.6 - Phosphatidylcholine (2x O-acyl) PC aa C36:6
+# PC.ae.C36.4 - Phosphatidylcholine (1x O-acyl, 1x O-alkyl) PC ae C36:4
+
 #     2. 
 #     "Phosphatidylcholine with diacyl residue sum C36:6"
 #           ("Phosphatidylcholine with acyl-alkyl residue sum C36:4")
@@ -106,9 +118,10 @@ annot4 = getBM(attributes=c("ensembl_gene_id", "entrezgene",
 #             map00591  	Linoleic acid metabolism
 #             map00592  	alpha-Linolenic acid metabolism
 #       x    ? map01100  	Metabolic pathways (not found; maybe too comprehensive?)
-#       x  ?  map01110  	Biosynthesis of secondary metabolites (not found; maybe too comprehensive?)
+#       x   ? map01110  	 Biosynthesis of secondary metabolites (not found; maybe too comprehensive?)
 #       x      map04723  	Retrograde endocannabinoid signaling
 #       x      map05231  	Choline metabolism in cancer
+
 # ###  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 #     COMPOUND: C03631 Oleoylphosphatidylcholine
 #              NA
@@ -131,13 +144,25 @@ annot4 = getBM(attributes=c("ensembl_gene_id", "entrezgene",
 
 all_IDs = list(annot1,annot2,annot3,annot4)
 all_dataset = c("up_LF_LCL_ampulla","up_LF_LCL_isthmus","up_SF_SCL_ampulla","up_SF_SCL_isthmus")
-all_pathway = c("bta00071 Fatty acid degradation","bta01212 Fatty acid metabolism",
-                "bta00564 Glycerophospholipid metabolism", "bta00591 Linoleic acid metabolism",
-                "bta00590 Arachidonic acid metabolism","bta00592 alpha-Linolenic acid metabolism",
-                "bta00600 Sphingolipid metabolism", "bta04071 Sphingolipid signaling pathway",
-                "bta04217 Necroptosis")
-selected_pathway = sdb$kg.sets[intersect(all_pathway, names(sdb$kg.sets))]
+all_pathway = c("bta00564", # Glycerophospholipid metabolism 
+                "bta00590", #Arachidonic acid metabolism
+                "bta00591", # Linoleic acid metabolism
+                "bta00592", # alpha-Linolenic acid metabolism
+                "bta04723") # Retrograde endocannabinoid signaling
 
+
+(all_pathway)
+pathway_in_db = c()
+for (i in seq_along(names(sdb$kg.sets))){
+  name_tmp = names(sdb$kg.sets)[i]
+  pathway_in_db[i] = strsplit(name_tmp,' ')[[1]][1]
+}
+
+# "bta00600 Sphingolipid metabolism", 
+# "bta04071 Sphingolipid signaling pathway",
+# "bta04217 Necroptosis"
+
+selected_pathway = sdb$kg.sets[which(pathway_in_db%in%all_pathway)]
 
 test_color = unlist(selected_pathway[2])
 names(test_color) = NULL
@@ -145,7 +170,9 @@ test_color = noquote(test_color)
 
 write.csv(test_color,"test_bta.txt",row.names = F)
 
-overlap = list();names = character();s = 0
+overlap = list()
+#names = character()
+s = 0
 for (i in c(1:length(all_IDs))){
   for ( j in c(1:length(all_pathway))){
     s = s + 1
@@ -157,6 +184,9 @@ for (i in c(1:length(all_IDs))){
 }
 overlap
 
+sink("mylist.txt")
+print(overlap)
+sink()
 
 #each pathway
 #    A  / I 
@@ -210,7 +240,6 @@ for (i in c(1:length(all_pathway))){
     Overlap_genes[[i]] = combind_overlap[which(index >0)]
     names(Overlap_genes)[i] = paste(names(selected_pathway[i]))
 }
-
 noquote(Contigency_table_allpath)
 
 
@@ -229,35 +258,64 @@ which(c(1:3,8) == c(1:4))
 ####################################
 # Pthway 1-9 
 for (i in c(1:length(selected_pathway))){
-  #i = 2
-  setwd("/Users/liulihe95/Desktop/metabolomics_0417/")
-  dir.create("path_ampulla")
-  setwd("/Users/liulihe95/Desktop/metabolomics_0417/path_ampulla")
-  # ampulla
-  pathway_code = substr(names(selected_pathway[i]),4,8)
-  index_a = rbind(cbind(annot1[annot1$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(1,nrow(annot1[annot1$entrezgene %in% unlist(selected_pathway[i]),]))),
-                  cbind(annot3[annot3$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(-1,nrow(annot3[annot3$entrezgene %in% unlist(selected_pathway[i]),]))))
-  index_a_00071 = data.frame(sig = index_a[,4]); rownames(index_a_00071) = index_a$entrezgene
-  pathview(gene.data = index_a_00071, pathway.id = pathway_code, species = "bta",kegg.native=T, sign.pos="bottomleft")
-  # isthmus
-  setwd("/Users/liulihe95/Desktop/metabolomics_0417/")
-  dir.create("path_isthmus")
-  setwd("/Users/liulihe95/Desktop/metabolomics_0417/path_isthmus")
-  index_i = rbind(cbind(annot2[annot2$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(1,nrow(annot2[annot2$entrezgene %in% unlist(selected_pathway[i]),]))),
-                  cbind(annot4[annot4$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(-1,nrow(annot4[annot4$entrezgene %in% unlist(selected_pathway[i]),]))))
-  index_i_00071 = data.frame(sig = index_i[,4]); rownames(index_i_00071) = index_i$entrezgene
-  pathview(gene.data = index_i_00071, pathway.id = c(pathway_code), species = "bta", kegg.native=T, sign.pos="bottomleft")
+    setwd("/Users/liulihe95/Desktop/metabolomics_0417/path_ampulla-new")
+    # ampulla
+    i = 1
+    pathway_code = substr(names(selected_pathway[i]),4,8)
+    index_a = rbind(cbind(annot1[annot1$entrezgene %in% unlist(selected_pathway[i]),],
+                          sig = rep(1,nrow(annot1[annot1$entrezgene %in% unlist(selected_pathway[i]),]))),
+                    cbind(annot3[annot3$entrezgene %in% unlist(selected_pathway[i]),],
+                          sig = rep(-1,nrow(annot3[annot3$entrezgene %in% unlist(selected_pathway[i]),]))))
+    index_a_00071 = data.frame(sig = index_a[,4]); rownames(index_a_00071) = index_a$entrezgene
+    
+    pathview(gene.data = index_a_00071, pathway.id = pathway_code, species = "bta", kegg.native=T, sign.pos="bottomleft")
+    
+    # isthmus
+    setwd("/Users/liulihe95/Desktop/metabolomics_0417/path_isthmus-new")
+    index_i = rbind(cbind(annot2[annot2$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(1,nrow(annot2[annot2$entrezgene %in% unlist(selected_pathway[i]),]))),
+                    cbind(annot4[annot4$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(-1,nrow(annot4[annot4$entrezgene %in% unlist(selected_pathway[i]),]))))
+    index_i_00071 = data.frame(sig = index_i[,4])
+    rownames(index_i_00071) = index_i$entrezgene
+    index_i_00071 = sig;names(index_i_00071) = index_i$entrezgene
+    pathview(gene.data = index_i_00071, pathway.id = pathway_code, 
+             species = "bta",
+             kegg.native=T, sign.pos="bottomleft")
 }
-names(selected_pathway)
-####################################
 
-i = 2
+# example 
+# library(pathview)
+# data(gse16873.d)
+# pathview(gene.data = gse16873.d[, 1], pathway.id = "04110",
+#                   species = "hsa", out.suffix = "gse16873")
+# 
+# test = gse16873.d[, 1]
+
+#pwys <- downloadPathways("bta")
+
+library(pathview)
+#plot.data.gene = plot.data.gene[rowSums(plot.data.gene[,c("x","y","width","height")])!=4,]
+
+
+names(selected_pathway)
+
+####################################
+# se <- makeExampleData(what="SE")
+# se <- deAna(se)
+# gs <- makeExampleData(what="gs", gnames=names(se))
+# grn <- makeExampleData(what="grn", nodes=names(se))
+# ggeaGraph(gs=gs[[1]], grn=grn, se=se)
+# getwd()
+
+
+
+
 pathway_code = substr(names(selected_pathway[i]),4,8)
 index_i = rbind(cbind(annot2[annot2$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(1,nrow(annot2[annot2$entrezgene %in% unlist(selected_pathway[i]),]))),
                 cbind(annot4[annot4$entrezgene %in% unlist(selected_pathway[i]),],sig = rep(-1,nrow(annot4[annot4$entrezgene %in% unlist(selected_pathway[i]),]))))
 index_i_00071 = data.frame(sig = index_i[,4]); rownames(index_i_00071) = index_i$entrezgene
 pathview.out = pathview(gene.data = index_i_00071, pathway.id = c(pathway_code), species = "bta", kegg.native=T, sign.pos="bottomleft",map.cpdname=TRUE, pdf.size = c(7, 7))
 write.csv(index_i_00071,"pathview_webtest.txt")
+
 str(pathview.out)
 str(cpd_data_test)
 #
@@ -269,6 +327,7 @@ str(pathview.out2)
 head(pathview.out,6)
 getwd()
 
+ls()
 
 download.kegg(pathway.id = "00071", species = "bta", kegg.dir = ".",
               file.type=c("xml", "png"))
@@ -277,8 +336,13 @@ download.kegg(pathway.id = "01212", species = "bta", kegg.dir = ".",
 
 test_parse =    parseKGML2DataFrame("bta00071.xml",reactions = T)
 test_parse_12 = parseKGML2DataFrame("bta01212.xml",reactions = T)
+dim(test_parse)
 
 ?parseKGML2DataFrame()
+
+
+#test = load('/Library/Frameworks/R.framework/Versions/4.0/Resources/library/pathview/extdata/kegg.sigmet.rda')
+#sfile <- system.file("extdata/hsa04010.xml",package="KEGGgraph")
 
 str(test_parse)
 r??parseKGML2()
@@ -294,7 +358,8 @@ piel = exp2[exp2$entrezgene %in% sdb$kg.sets$'bta04916 Melanogenesis',]
 genes.expresion.diferencial.piel = subset(piel, unos==1)
 
 
-pathview(gene.data = index_a_input, pathway.id = c("04916","00350"), species = "bta",
+pathview(gene.data = index_a_input,
+         pathway.id = c("04916","00350"), species = "bta",
          kegg.native=T, sign.pos="bottomleft")
 
 pathview(gene.data = ser, pathway.id = "00350", species = "bta",
@@ -343,7 +408,7 @@ library(pathview)
 library(biomaRt)
 library(gage)
 ##obtengo los kegg de bos taurus
-kegg.gsets(species = "bta", id.type = "kegg", check.new=FALSE)->sdb
+sdb = kegg.gsets(species = "bta", id.type = "kegg", check.new=FALSE)
 kegg.gs=sdb$kg.sets[sdb$sigmet.id]
 
 #which(IDs1 == overlap_ampulla_LF$ensembl_gene_id)

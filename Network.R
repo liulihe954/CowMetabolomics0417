@@ -38,12 +38,66 @@ label6 = c(168)    # Hexoses
 label7 = c(167:179) # Eicosanoids & oxidation products of polyunsaturated fatty acids
 length(label7)
 
+Metab_not_included = c('Arg','His','Ile','Lys','Met','Orn','Phe','Trp',
+                       'Tyr','Val','Ac-Orn','alpha-AAA','c4-OH-Pro','DOPA','Kynurenine',
+                       'Met-SO','Nitro-Tyr','PEA','Serotonin',
+                       'PC.aa.C40.5','PC.ae.C30.1','PC.ae.C38.6','PC.ae.C42.4','SM..OH..C14.1',
+                       '8-iso-PGF2a','9S-HODE','13S-HODE','14(15)-EpETE','15-deoxy-PGJ2',
+                       '15S-HETE','LTB4','LTD4','tetranor-PGEM')
+length(Metab_not_included)
+
+
+Metab_not_included = read_excel('Original_Metab_2020.xlsx',sheet = 2,col_names = F) %>% 
+  t() %>% c()
+
+test1 = gsub("\\(",'',Metab_not_included)
+test2 = gsub("\\)",'',test1)
+test3 = gsub("-",'',test2)
+test4 = gsub("\\.",'',test3)
+test5 = gsub(" ",'',test4)
+test6 = gsub(":",'',test5)
+
+networkData = read.xls("metabolomics_data.xlsx",sheet = 1, method=c("tab"), header= T)
+metab_names = rownames(networkData)
+test5 = gsub("\\(",'',metab_names)
+test6 = gsub("\\)",'',test5)
+test7 = gsub("-",'',test6)
+test8 = gsub("\\.",'',test7)
+test9 = test8[-which(test8 %in% c('X13SHODE','Phe'))]
+
+view(networkData)
+
+library(readxl)
+library(tidyverse)
+test = read_excel('Original_Metab_2020.xlsx',sheet = 1)
+
+allmatab = names(test)[-c(1:2)]
+testa = gsub("\\(",'',allmatab)
+testb = gsub("\\)",'',testa)
+testc = gsub("-",'',testb)
+testd = gsub("\\.",'',testc)
+teste = gsub(" ",'',testd)
+testf = gsub(":",'',teste)
+
+
+# all205 = testf
+# rm33 = test6
+# nt177 = test9
+# 
+# nt177[!(nt177 %in% all205)]
+# 
+# nt177[nt177 %in% rm33]
+ # "Val"  "alphaAAA" "PCaeC386" "LTD4" "15SHETE"
+
+
 ##################################################################
 #### Function pre ###############################################
 ##################################################################
 check_zero = function(datExpr1,datExpr2,start,stop,thres){
-  label_low1 = as.numeric() ; label_low2 = as.character()
-  label_high1 = as.numeric()  ; label_high2 = as.character()
+  label_low1 = as.numeric()
+  label_low2 = as.character()
+  label_high1 = as.numeric()
+  label_high2 = as.character()
   for (i in c(1:length(allnames_label))){
     test1 = length(which(datExpr1[,i]==0))
     test2 = length(which(datExpr2[,i]==0))
@@ -65,7 +119,9 @@ check_zero = function(datExpr1,datExpr2,start,stop,thres){
   return(Results)
 }
 checkzero_result = check_zero(datExpr_low,datExpr_high,1,length(datExpr_high),7)
+
 remove_index = checkzero_result$may_remove; remove_index## remove 9 and 171, now we have 179 - 2 = 177 nodes
+
 rownames(networkData)[remove_index]
 ##################################################################
 get_NC_cor = function(datExpr1,datExpr2,r_thres,p_thres){
@@ -294,8 +350,8 @@ plot3 = ggplot(test_combine_dataset, aes(x=connectivity, fill=category)) +
   geom_histogram(binwidth=1,alpha=0.75, position="identity", aes(y = ..count..), color="black") +
   # geom_density(alpha=0.6,trim = F) +
   xlim(-2,(max(test_combine_dataset$connectivity)+5))+
-  geom_vline(aes(xintercept=meanCon_ref), color="black", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=meanCon_test), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=meanCon_ref), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=meanCon_test), color="red", linetype="dashed", size=1) +
   theme_gray()+
   #scale_fill_discrete(name="Groups")+
   theme(legend.position="top",legend.title = element_text(size = 10, color = "black",face = "bold",vjust = 0.5, hjust = 0.5))+ #family = "Microsoft Sans Serif",
@@ -316,8 +372,8 @@ plot4 = ggplot(test_combine_dataset_clstcoef, aes(x=clstcoef, fill=category)) +
   geom_histogram(binwidth=.01,alpha=0.75, position="identity", aes(y = ..count..), color="black") +
   #  geom_density(alpha=0.6,trim = F) +
   xlim(-0.05,1.05)+
-  geom_vline(aes(xintercept=meanClstcoef_ref), color="black", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=meanClstcoef_test), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=meanClstcoef_ref), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=meanClstcoef_test), color="red", linetype="dashed", size=1) +
   theme_gray()+
   #scale_fill_discrete(name="Groups")+
   scale_fill_manual(name="Groups",values = c("blue", "red")) +
@@ -334,111 +390,109 @@ plot4
 
 dev.off()
 
-tiff("Metab_network_plot.tiff", width = 14, height = 12, units = 'in', res = 300)
-plot_grid(plot3, plot4, align = c("v"),labels = c("A","B"), nrow = 2,label_size= 20, label_colour = "darkgreen")
-#tiff("presentation_figure.tiff", width = 14, height = 12, units = 'in', res = 300)
-#plot_grid(plot3,plot4, align = c("v"),labels = c("A","B"), nrow = 2,label_size= 20, label_colour = "darkgreen")
-dev.off()
+#tiff("Metab_network_plot.tiff", width = 14, height = 12, units = 'in', res = 300)
+#plot_grid(plot3, plot4, align = c("v"),labels = c("A","B"), nrow = 2,label_size= 20, label_colour = "darkgreen")
+#dev.off()
 
 ###################################################################################################
 ####                                       3. pre-difine (chemical category)                ######
 #################################################################################################
-label1 = c(1:26);label1 = label1[-intersect(label1,remove_index)] # Amino acids and Biogenic Amines 
-label2 = c(27:66);#label2 = label2[-intersect(label2,remove_index)]; # Acylcarnitines 
-label3 = c(67:80);#label3 = label3[-intersect(label3,remove_index)];  # Lysophosphatidylcholines
-label4 = c(81:153);#label4 = label4[-intersect(label4,remove_index)];  # Phosphatidylcholines
-label5 = c(154:167);#label5 = label5[-intersect(label5,remove_index)]; # Sphingomyelins 
-# label6 = c(168)    # Hexoses 
-label7 = c(167:179); label7 = label7[-intersect(label7,remove_index)]; # Amino acids and Biogenic Amines 
-label7 = c(167:170,172:179); #label7 = label7[-171] # Amino acids and Biogenic Amines 
+# label1 = c(1:26);label1 = label1[-intersect(label1,remove_index)] # Amino acids and Biogenic Amines 
+# label2 = c(27:66);#label2 = label2[-intersect(label2,remove_index)]; # Acylcarnitines 
+# label3 = c(67:80);#label3 = label3[-intersect(label3,remove_index)];  # Lysophosphatidylcholines
+# label4 = c(81:153);#label4 = label4[-intersect(label4,remove_index)];  # Phosphatidylcholines
+# label5 = c(154:167);#label5 = label5[-intersect(label5,remove_index)]; # Sphingomyelins 
+# # label6 = c(168)    # Hexoses 
+# label7 = c(167:179); label7 = label7[-intersect(label7,remove_index)]; # Amino acids and Biogenic Amines 
+# label7 = c(167:170,172:179); #label7 = label7[-171] # Amino acids and Biogenic Amines 
+# # 
+# sub1_names = colnames(datExpr_high)[label1]
+# sub2_names = colnames(datExpr_high)[label2]
+# sub3_names = colnames(datExpr_high)[label3]
+# sub4_names = colnames(datExpr_high)[label4]
+# sub5_names = colnames(datExpr_high)[label5]
+# sub7_names = colnames(datExpr_high)[label7]
+# # 
+# #Results_metab_cor_sub1$basic
+# #Results_metab_cor_sub1$change
+# #
+# #Results_metab_cor$change[sub3_names,]
+# # remove_index
+# ### sub - datasets
+# ###################################################################################################
+# ####                              4. subnet of pre-defined module                           ######
+# #################################################################################################
+# ########## 
+# allnames_label[label1]
+# label1 = c(1:26);label1 = label1[-intersect(label1,remove_index)] # Amino acids and Biogenic Amines 
+# label2 = c(27:66);#label2 = label2[-intersect(label2,remove_index)]; # Acylcarnitines 
+# label3 = c(67:80);#label3 = label3[-intersect(label3,remove_index)];  # Lysophosphatidylcholines
+# label4 = c(81:153);#label4 = label4[-intersect(label4,remove_index)];  # Phosphatidylcholines
+# label5 = c(154:167);#label5 = label5[-intersect(label5,remove_index)]; # Sphingomyelins 
+# # label6 = c(168)    # Hexoses 
+# label7 = c(167:170,172:179); #label7 = label7[-171] # Amino acids and Biogenic Amines 
+# ## dataset pre
+# test_data_sub1_low = datExpr_low[,label1]; test_data_sub1_high = datExpr_high[,label1]
+# test_data_sub2_low = datExpr_low[,label2]; test_data_sub2_high = datExpr_high[,label2]
+# test_data_sub3_low = datExpr_low[,label3]; test_data_sub3_high = datExpr_high[,label3]
+# test_data_sub4_low = datExpr_low[,label4]; test_data_sub4_high = datExpr_high[,label4]
+# test_data_sub5_low = datExpr_low[,label5]; test_data_sub5_high = datExpr_high[,label5]
+# test_data_sub7_low = datExpr_low[,label7]; test_data_sub7_high = datExpr_high[,label7]
 # 
-sub1_names = colnames(datExpr_high)[label1]
-sub2_names = colnames(datExpr_high)[label2]
-sub3_names = colnames(datExpr_high)[label3]
-sub4_names = colnames(datExpr_high)[label4]
-sub5_names = colnames(datExpr_high)[label5]
-sub7_names = colnames(datExpr_high)[label7]
+# ### results pre
+# testResults_cor_sub1 = get_NC_cor(test_data_sub1_low,test_data_sub1_high,0.5,0.05)
+# testResults_spearmen_sub1 = get_NC_spearman(test_data_sub1_low,test_data_sub1_high,0.5,0.05)
+# testResults_cor_sub2 = get_NC_cor(test_data_sub2_low,test_data_sub2_high,0.5,0.05)
+# testResults_spearmen_sub2 = get_NC_spearman(test_data_sub2_low,test_data_sub2_high,0.5,0.05)
+# #
+# testResults_cor_sub3 = get_NC_cor_modf(test_data_sub3_low,test_data_sub3_high,0.5,0.05)
+# testResults_spearmen_sub3 = get_NC_spearman(test_data_sub3_low,test_data_sub3_high,0.5,0.05)
+# testResults_cor_sub4 = get_NC_cor(test_data_sub4_low,test_data_sub4_high,0.5,0.05)
+# testResults_spearmen_sub4 = get_NC_spearman(test_data_sub4_low,test_data_sub4_high,0.5,0.05)
+# #
+# testResults_cor_sub5 = get_NC_cor(test_data_sub5_low,test_data_sub5_high,0.5,0.05)
+# testResults_spearmen_sub5 = get_NC_spearman(test_data_sub5_low,test_data_sub5_high,0.5,0.05)
+# testResults_cor_sub7 = get_NC_cor(test_data_sub7_low,test_data_sub7_high,0.5,0.05)
+# testResults_spearmen_sub7 = get_NC_spearman_modf(datExpr_low[,label7],test_data_sub7_high,0.5,0.05)
 # 
-#Results_metab_cor_sub1$basic
-#Results_metab_cor_sub1$change
-#
-#Results_metab_cor$change[sub3_names,]
-# remove_index
-### sub - datasets
-###################################################################################################
-####                              4. subnet of pre-defined module                           ######
-#################################################################################################
-########## 
-allnames_label[label1]
-label1 = c(1:26);label1 = label1[-intersect(label1,remove_index)] # Amino acids and Biogenic Amines 
-label2 = c(27:66);#label2 = label2[-intersect(label2,remove_index)]; # Acylcarnitines 
-label3 = c(67:80);#label3 = label3[-intersect(label3,remove_index)];  # Lysophosphatidylcholines
-label4 = c(81:153);#label4 = label4[-intersect(label4,remove_index)];  # Phosphatidylcholines
-label5 = c(154:167);#label5 = label5[-intersect(label5,remove_index)]; # Sphingomyelins 
-# label6 = c(168)    # Hexoses 
-label7 = c(167:170,172:179); #label7 = label7[-171] # Amino acids and Biogenic Amines 
-## dataset pre
-test_data_sub1_low = datExpr_low[,label1]; test_data_sub1_high = datExpr_high[,label1]
-test_data_sub2_low = datExpr_low[,label2]; test_data_sub2_high = datExpr_high[,label2]
-test_data_sub3_low = datExpr_low[,label3]; test_data_sub3_high = datExpr_high[,label3]
-test_data_sub4_low = datExpr_low[,label4]; test_data_sub4_high = datExpr_high[,label4]
-test_data_sub5_low = datExpr_low[,label5]; test_data_sub5_high = datExpr_high[,label5]
-test_data_sub7_low = datExpr_low[,label7]; test_data_sub7_high = datExpr_high[,label7]
-
-### results pre
-testResults_cor_sub1 = get_NC_cor(test_data_sub1_low,test_data_sub1_high,0.5,0.05)
-testResults_spearmen_sub1 = get_NC_spearman(test_data_sub1_low,test_data_sub1_high,0.5,0.05)
-testResults_cor_sub2 = get_NC_cor(test_data_sub2_low,test_data_sub2_high,0.5,0.05)
-testResults_spearmen_sub2 = get_NC_spearman(test_data_sub2_low,test_data_sub2_high,0.5,0.05)
-#
-testResults_cor_sub3 = get_NC_cor_modf(test_data_sub3_low,test_data_sub3_high,0.5,0.05)
-testResults_spearmen_sub3 = get_NC_spearman(test_data_sub3_low,test_data_sub3_high,0.5,0.05)
-testResults_cor_sub4 = get_NC_cor(test_data_sub4_low,test_data_sub4_high,0.5,0.05)
-testResults_spearmen_sub4 = get_NC_spearman(test_data_sub4_low,test_data_sub4_high,0.5,0.05)
-#
-testResults_cor_sub5 = get_NC_cor(test_data_sub5_low,test_data_sub5_high,0.5,0.05)
-testResults_spearmen_sub5 = get_NC_spearman(test_data_sub5_low,test_data_sub5_high,0.5,0.05)
-testResults_cor_sub7 = get_NC_cor(test_data_sub7_low,test_data_sub7_high,0.5,0.05)
-testResults_spearmen_sub7 = get_NC_spearman_modf(datExpr_low[,label7],test_data_sub7_high,0.5,0.05)
-
-
-
-# plotting - all 
-plot3_1 = ggplot(test_combine_dataset, aes(x=connectivity, fill=category)) +
-  geom_histogram(binwidth=1,alpha=0.6, position="identity", aes(y = ..count..), color="black") +
-  # geom_density(alpha=0.6,trim = F) +
-  #xlim(0,(max(test_combine_dataset$connectivity)+5))+
-  geom_vline(aes(xintercept=meanCon_ref), color="black", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=meanCon_test), color="blue", linetype="dashed", size=1) +
-  theme_gray()+
-  theme(legend.position="None")+
-  labs(title="all_metab_con_pearson", x="Connectivity", y = "Frequency")+
-  theme(axis.text.x = element_text(size = 15, family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
-  theme(axis.text.y = element_text(size = 15,family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
-  theme(axis.title.x = element_text(size = 15,family = "Microsoft Sans Serif",color = "black",vjust = 0.5, hjust = 0.5))+
-  theme(axis.title.y = element_text(size = 15, color = "black",family = "Microsoft Sans Serif", vjust = 0.5, hjust = 0.5))+
-  theme(plot.title = element_text(size = 20, family = "Microsoft Sans Serif",color = "black", face = "bold", vjust = 0.5, hjust = 0.5))+
-  theme(plot.title = element_text(hjust = 0.5))
-plot4_1  = ggplot(test_combine_dataset_clstcoef, aes(x=clstcoef, fill=category)) +
-  geom_histogram(binwidth=.01,alpha=0.6, position="identity", aes(y = ..count..), color="black") +
-  #  geom_density(alpha=0.6,trim = F) +
-  xlim(-0.1,1.1)+
-  geom_vline(aes(xintercept=meanClstcoef_ref), color="black", linetype="dashed", size=1) +
-  geom_vline(aes(xintercept=meanClstcoef_test), color="blue", linetype="dashed", size=1) +
-  theme_gray()+
-  theme(legend.position="None")+
-  labs(title="all_metab_clst_pearson", x="Cluster Coefficient", y = "Frequency")+
-  theme(axis.text.x = element_text(size = 15, family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
-  theme(axis.text.y = element_text(size = 15,family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
-  theme(axis.title.x = element_text(size = 15,family = "Microsoft Sans Serif",color = "black",vjust = 0.5, hjust = 0.5))+
-  theme(axis.title.y = element_text(size = 15, color = "black",family = "Microsoft Sans Serif", vjust = 0.5, hjust = 0.5))+
-  theme(plot.title = element_text(size = 20, family = "Microsoft Sans Serif",color = "black", face = "bold", vjust = 0.5, hjust = 0.5))+
-  theme(plot.title = element_text(hjust = 0.5))
-plot3_spearman = Plot_compare_distrib_con(Results_metab_spearman$change$con_1,Results_metab_spearman$change$con_2,"all_metab_con_spearman")
-plot4_spearman = Plot_compare_distrib_clst(Results_metab_spearman$change$cls_coef_1,Results_metab_spearman$change$cls_coef_2,"all_metab_clst_spearman")
-
-multiplot(plot3_1,plot4_1,plot3_spearman,plot4_spearman,cols = 2)
-dev.off()
+# 
+# 
+# # plotting - all 
+# plot3_1 = ggplot(test_combine_dataset, aes(x=connectivity, fill=category)) +
+#   geom_histogram(binwidth=1,alpha=0.6, position="identity", aes(y = ..count..), color="black") +
+#   # geom_density(alpha=0.6,trim = F) +
+#   #xlim(0,(max(test_combine_dataset$connectivity)+5))+
+#   geom_vline(aes(xintercept=meanCon_ref), color="black", linetype="dashed", size=1) +
+#   geom_vline(aes(xintercept=meanCon_test), color="blue", linetype="dashed", size=1) +
+#   theme_gray()+
+#   theme(legend.position="None")+
+#   labs(title="all_metab_con_pearson", x="Connectivity", y = "Frequency")+
+#   theme(axis.text.x = element_text(size = 15, family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
+#   theme(axis.text.y = element_text(size = 15,family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
+#   theme(axis.title.x = element_text(size = 15,family = "Microsoft Sans Serif",color = "black",vjust = 0.5, hjust = 0.5))+
+#   theme(axis.title.y = element_text(size = 15, color = "black",family = "Microsoft Sans Serif", vjust = 0.5, hjust = 0.5))+
+#   theme(plot.title = element_text(size = 20, family = "Microsoft Sans Serif",color = "black", face = "bold", vjust = 0.5, hjust = 0.5))+
+#   theme(plot.title = element_text(hjust = 0.5))
+# plot4_1  = ggplot(test_combine_dataset_clstcoef, aes(x=clstcoef, fill=category)) +
+#   geom_histogram(binwidth=.01,alpha=0.6, position="identity", aes(y = ..count..), color="black") +
+#   #  geom_density(alpha=0.6,trim = F) +
+#   xlim(-0.1,1.1)+
+#   geom_vline(aes(xintercept=meanClstcoef_ref), color="black", linetype="dashed", size=1) +
+#   geom_vline(aes(xintercept=meanClstcoef_test), color="blue", linetype="dashed", size=1) +
+#   theme_gray()+
+#   theme(legend.position="None")+
+#   labs(title="all_metab_clst_pearson", x="Cluster Coefficient", y = "Frequency")+
+#   theme(axis.text.x = element_text(size = 15, family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
+#   theme(axis.text.y = element_text(size = 15,family = "Microsoft Sans Serif",color = "black", vjust = 0.5, hjust = 0.5))+
+#   theme(axis.title.x = element_text(size = 15,family = "Microsoft Sans Serif",color = "black",vjust = 0.5, hjust = 0.5))+
+#   theme(axis.title.y = element_text(size = 15, color = "black",family = "Microsoft Sans Serif", vjust = 0.5, hjust = 0.5))+
+#   theme(plot.title = element_text(size = 20, family = "Microsoft Sans Serif",color = "black", face = "bold", vjust = 0.5, hjust = 0.5))+
+#   theme(plot.title = element_text(hjust = 0.5))
+# plot3_spearman = Plot_compare_distrib_con(Results_metab_spearman$change$con_1,Results_metab_spearman$change$con_2,"all_metab_con_spearman")
+# plot4_spearman = Plot_compare_distrib_clst(Results_metab_spearman$change$cls_coef_1,Results_metab_spearman$change$cls_coef_2,"all_metab_clst_spearman")
+# 
+# multiplot(plot3_1,plot4_1,plot3_spearman,plot4_spearman,cols = 2)
+# dev.off()
 #  plots pre
 label1 = c(1:26) # Amino acids and Biogenic Amines 
 label2 = c(27:66) # Acylcarnitines 
@@ -449,60 +503,60 @@ label6 = c(168)    # Hexoses
 label7 = c(167:179) # Eicosanoids & oxidation products of polyunsaturated fatty acids
 
 ######################################################### cor #########################################################
-test_cor_con1 = Plot_compare_distrib_con(testResults_cor_sub1$change$con_1,testResults_cor_sub1$change$con_2,"sub1_Amino acids and Biogenic Amines_con")
-test_cor_clst1 = Plot_compare_distrib_clst(testResults_cor_sub1$change$cls_coef_1,testResults_cor_sub1$change$cls_coef_2,"sub1_Amino acids and Biogenic Amines_clst")
-#sub2
-test_cor_con2 = Plot_compare_distrib_con(testResults_cor_sub2$change$con_1,testResults_cor_sub2$change$con_2,"sub2_Acylcarnitines_con")
-test_cor_clst2 = Plot_compare_distrib_clst(testResults_cor_sub2$change$cls_coef_1,testResults_cor_sub2$change$cls_coef_2,"sub2_Acylcarnitines_clst")
-tiff("subplot1.tiff", width = 14, height = 12, units = 'in', res = 300)
-multiplot(test_cor_con1,test_cor_clst1,test_cor_con2,test_cor_clst2,cols = 2)
-dev.off()
-# Plot_compare_distrib_clst(Results_metab_cor$change$cls_coef_1,Results_metab_cor$change$cls_coef_2,"sub2_clst")
-#sub3
-test_cor_con3 = Plot_compare_distrib_con(testResults_cor_sub3$change$con_1,testResults_cor_sub3$change$con_2,"sub3_Lysophosphatidylcholines_con")
-test_cor_clst3 = Plot_compare_distrib_clst(testResults_cor_sub3$change$cls_coef_1,testResults_cor_sub3$change$cls_coef_2,"sub3_Lysophosphatidylcholines_clst")
-#sub4
-test_cor_con4 = Plot_compare_distrib_con(testResults_cor_sub4$change$con_1,testResults_cor_sub4$change$con_2,"sub4_Phosphatidylcholines_con")
-test_cor_clst4 = Plot_compare_distrib_clst(testResults_cor_sub4$change$cls_coef_1,testResults_cor_sub4$change$cls_coef_2,"sub4_Phosphatidylcholines_clst")
-tiff("subplot2.tiff", width = 14, height = 12, units = 'in', res = 300)
-multiplot(test_cor_con3,test_cor_clst3,test_cor_con4,test_cor_clst4,cols = 2)
-dev.off()
-#sub5
-test_cor_con5 = Plot_compare_distrib_con(testResults_cor_sub5$change$con_1,testResults_cor_sub5$change$con_2,"sub5_Sphingomyelins_con")
-test_cor_clst5 = Plot_compare_distrib_clst(testResults_cor_sub5$change$cls_coef_1,testResults_cor_sub5$change$cls_coef_2,"sub5_Sphingomyelins_clst")
-#sub7
-test_cor_con7 = Plot_compare_distrib_con(testResults_cor_sub7$change$con_1,testResults_cor_sub7$change$con_2,"sub7_Eicosanoids & ps-fa_con")
-test_cor_clst7 = Plot_compare_distrib_clst(testResults_cor_sub7$change$cls_coef_1,testResults_cor_sub7$change$cls_coef_2,"sub7_Eicosanoids & ps-fa_clst")
-tiff("subplot3.tiff", width = 14, height = 12, units = 'in', res = 300)
-multiplot(test_cor_con5,test_cor_clst5,test_cor_con7,test_cor_clst7,cols = 2)
-dev.off()
-
-
-######################################################### spearman  #########################################################
-# sub1
-test_spearmen_con1 = Plot_compare_distrib_con(testResults_spearmen_sub1$change$con_1,testResults_spearmen_sub1$change$con_2,"sub1_Amino acids and Biogenic Amines_con")
-test_spearmen_clst1 = Plot_compare_distrib_clst(testResults_spearmen_sub1$change$cls_coef_1,testResults_spearmen_sub1$change$cls_coef_2,"sub1_Amino acids and Biogenic Amines_clst")
-#sub2
-test_spearmen_con2 = Plot_compare_distrib_con(testResults_spearmen_sub2$change$con_1,testResults_spearmen_sub2$change$con_2,"sub2_Acylcarnitines_con")
-test_spearmen_clst2 = Plot_compare_distrib_clst(testResults_spearmen_sub2$change$cls_coef_1,testResults_spearmen_sub2$change$cls_coef_2,"sub2_Acylcarnitines_clst")
-multiplot(test_spearmen_con1,test_spearmen_clst1,test_spearmen_con2,test_spearmen_clst2,cols = 2)
-#sub3
-test_spearmen_con3 = Plot_compare_distrib_con(testResults_spearmen_sub3$change$con_1,testResults_spearmen_sub3$change$con_2,"sub3_Lysophosphatidylcholines_con")
-test_spearmen_clst3 = Plot_compare_distrib_clst(testResults_spearmen_sub3$change$cls_coef_1,testResults_spearmen_sub3$change$cls_coef_2,"sub3_Lysophosphatidylcholines_clst")
-#sub4
-test_spearmen_con4 = Plot_compare_distrib_con(testResults_spearmen_sub4$change$con_1,testResults_spearmen_sub4$change$con_2,"sub4_Phosphatidylcholines_con")
-test_spearmen_clst4 = Plot_compare_distrib_clst(testResults_spearmen_sub4$change$cls_coef_1,testResults_spearmen_sub4$change$cls_coef_2,"sub4_Phosphatidylcholines_clst")
-multiplot(test_spearmen_con3,test_spearmen_clst3,test_spearmen_con4,test_spearmen_clst4,cols = 2)
-#sub5
-test_spearmen_con5 = Plot_compare_distrib_con(testResults_spearmen_sub5$change$con_1,testResults_spearmen_sub5$change$con_2,"sub5_Sphingomyelins_con")
-test_spearmen_clst5 = Plot_compare_distrib_clst(testResults_spearmen_sub5$change$cls_coef_1,testResults_spearmen_sub5$change$cls_coef_2,"sub5_Sphingomyelins_clst")
-mean(testResults_spearmen_sub5$change$cls_coef_1)
-#sub7
-test_spearmen_con7 = Plot_compare_distrib_con(testResults_spearmen_sub7$change$con_1,testResults_spearmen_sub7$change$con_2,"sub7_Eicosanoids & ps-fa_con")
-test_spearmen_clst7 = Plot_compare_distrib_clst(testResults_spearmen_sub7$change$cls_coef_1,testResults_spearmen_sub7$change$cls_coef_2,"sub7_Eicosanoids & ps-fa_clst")
-multiplot(test_spearmen_con5,test_spearmen_clst5,test_spearmen_con7,test_spearmen_clst7,cols = 2)
-dev.off()
-####
+# test_cor_con1 = Plot_compare_distrib_con(testResults_cor_sub1$change$con_1,testResults_cor_sub1$change$con_2,"sub1_Amino acids and Biogenic Amines_con")
+# test_cor_clst1 = Plot_compare_distrib_clst(testResults_cor_sub1$change$cls_coef_1,testResults_cor_sub1$change$cls_coef_2,"sub1_Amino acids and Biogenic Amines_clst")
+# #sub2
+# test_cor_con2 = Plot_compare_distrib_con(testResults_cor_sub2$change$con_1,testResults_cor_sub2$change$con_2,"sub2_Acylcarnitines_con")
+# test_cor_clst2 = Plot_compare_distrib_clst(testResults_cor_sub2$change$cls_coef_1,testResults_cor_sub2$change$cls_coef_2,"sub2_Acylcarnitines_clst")
+# tiff("subplot1.tiff", width = 14, height = 12, units = 'in', res = 300)
+# multiplot(test_cor_con1,test_cor_clst1,test_cor_con2,test_cor_clst2,cols = 2)
+# dev.off()
+# # Plot_compare_distrib_clst(Results_metab_cor$change$cls_coef_1,Results_metab_cor$change$cls_coef_2,"sub2_clst")
+# #sub3
+# test_cor_con3 = Plot_compare_distrib_con(testResults_cor_sub3$change$con_1,testResults_cor_sub3$change$con_2,"sub3_Lysophosphatidylcholines_con")
+# test_cor_clst3 = Plot_compare_distrib_clst(testResults_cor_sub3$change$cls_coef_1,testResults_cor_sub3$change$cls_coef_2,"sub3_Lysophosphatidylcholines_clst")
+# #sub4
+# test_cor_con4 = Plot_compare_distrib_con(testResults_cor_sub4$change$con_1,testResults_cor_sub4$change$con_2,"sub4_Phosphatidylcholines_con")
+# test_cor_clst4 = Plot_compare_distrib_clst(testResults_cor_sub4$change$cls_coef_1,testResults_cor_sub4$change$cls_coef_2,"sub4_Phosphatidylcholines_clst")
+# tiff("subplot2.tiff", width = 14, height = 12, units = 'in', res = 300)
+# multiplot(test_cor_con3,test_cor_clst3,test_cor_con4,test_cor_clst4,cols = 2)
+# dev.off()
+# #sub5
+# test_cor_con5 = Plot_compare_distrib_con(testResults_cor_sub5$change$con_1,testResults_cor_sub5$change$con_2,"sub5_Sphingomyelins_con")
+# test_cor_clst5 = Plot_compare_distrib_clst(testResults_cor_sub5$change$cls_coef_1,testResults_cor_sub5$change$cls_coef_2,"sub5_Sphingomyelins_clst")
+# #sub7
+# test_cor_con7 = Plot_compare_distrib_con(testResults_cor_sub7$change$con_1,testResults_cor_sub7$change$con_2,"sub7_Eicosanoids & ps-fa_con")
+# test_cor_clst7 = Plot_compare_distrib_clst(testResults_cor_sub7$change$cls_coef_1,testResults_cor_sub7$change$cls_coef_2,"sub7_Eicosanoids & ps-fa_clst")
+# tiff("subplot3.tiff", width = 14, height = 12, units = 'in', res = 300)
+# multiplot(test_cor_con5,test_cor_clst5,test_cor_con7,test_cor_clst7,cols = 2)
+# dev.off()
+# 
+# 
+# ######################################################### spearman  #########################################################
+# # sub1
+# test_spearmen_con1 = Plot_compare_distrib_con(testResults_spearmen_sub1$change$con_1,testResults_spearmen_sub1$change$con_2,"sub1_Amino acids and Biogenic Amines_con")
+# test_spearmen_clst1 = Plot_compare_distrib_clst(testResults_spearmen_sub1$change$cls_coef_1,testResults_spearmen_sub1$change$cls_coef_2,"sub1_Amino acids and Biogenic Amines_clst")
+# #sub2
+# test_spearmen_con2 = Plot_compare_distrib_con(testResults_spearmen_sub2$change$con_1,testResults_spearmen_sub2$change$con_2,"sub2_Acylcarnitines_con")
+# test_spearmen_clst2 = Plot_compare_distrib_clst(testResults_spearmen_sub2$change$cls_coef_1,testResults_spearmen_sub2$change$cls_coef_2,"sub2_Acylcarnitines_clst")
+# multiplot(test_spearmen_con1,test_spearmen_clst1,test_spearmen_con2,test_spearmen_clst2,cols = 2)
+# #sub3
+# test_spearmen_con3 = Plot_compare_distrib_con(testResults_spearmen_sub3$change$con_1,testResults_spearmen_sub3$change$con_2,"sub3_Lysophosphatidylcholines_con")
+# test_spearmen_clst3 = Plot_compare_distrib_clst(testResults_spearmen_sub3$change$cls_coef_1,testResults_spearmen_sub3$change$cls_coef_2,"sub3_Lysophosphatidylcholines_clst")
+# #sub4
+# test_spearmen_con4 = Plot_compare_distrib_con(testResults_spearmen_sub4$change$con_1,testResults_spearmen_sub4$change$con_2,"sub4_Phosphatidylcholines_con")
+# test_spearmen_clst4 = Plot_compare_distrib_clst(testResults_spearmen_sub4$change$cls_coef_1,testResults_spearmen_sub4$change$cls_coef_2,"sub4_Phosphatidylcholines_clst")
+# multiplot(test_spearmen_con3,test_spearmen_clst3,test_spearmen_con4,test_spearmen_clst4,cols = 2)
+# #sub5
+# test_spearmen_con5 = Plot_compare_distrib_con(testResults_spearmen_sub5$change$con_1,testResults_spearmen_sub5$change$con_2,"sub5_Sphingomyelins_con")
+# test_spearmen_clst5 = Plot_compare_distrib_clst(testResults_spearmen_sub5$change$cls_coef_1,testResults_spearmen_sub5$change$cls_coef_2,"sub5_Sphingomyelins_clst")
+# mean(testResults_spearmen_sub5$change$cls_coef_1)
+# #sub7
+# test_spearmen_con7 = Plot_compare_distrib_con(testResults_spearmen_sub7$change$con_1,testResults_spearmen_sub7$change$con_2,"sub7_Eicosanoids & ps-fa_con")
+# test_spearmen_clst7 = Plot_compare_distrib_clst(testResults_spearmen_sub7$change$cls_coef_1,testResults_spearmen_sub7$change$cls_coef_2,"sub7_Eicosanoids & ps-fa_clst")
+# multiplot(test_spearmen_con5,test_spearmen_clst5,test_spearmen_con7,test_spearmen_clst7,cols = 2)
+# dev.off()
+# ####
 
 ###################################################################################################
 ####                                       5. Expo to cyto                                  ######
@@ -740,28 +794,70 @@ summary(raw_p_k)
 # summary(adj_p)
 
 
+
 ##########   t.test unequal var   ########   
-# dim(datExpr_metab)
-# ttest=t.test(datExpr_metab[(1:table(TRT)[1]),1],datExpr_metab[((table(TRT)[1]+1):length(TRT)),1],var.equal = F)
+metab_names = c()
 raw_p_t = numeric(ncol(datExpr_metab))
+raw_p_t_eqvar = numeric(ncol(datExpr_metab))
+raw_p_t_log = numeric(ncol(datExpr_metab))
+#
 TRT = substr(rownames(datExpr_metab),1,4)
 #kruskal.test(TRT~DATA,test_df)
 for (i in c(1:ncol(datExpr_metab))){
-  #test_lm = data.frame(trt = substr(rownames(datExpr_metab),1,4), measure=as.numeric(datExpr_metab[,i]))
-  ttest = t.test(datExpr_metab[(1:table(TRT)[1]),i],datExpr_metab[((table(TRT)[1]+1):length(TRT)),i], var.equal = F)
-  raw_p_t[i] = ttest$p.value
+  metab_names[i] = names(datExpr_metab)[i]
+  consentration1 = datExpr_metab[(1:table(TRT)[1]),i]
+  consentration2 = datExpr_metab[((table(TRT)[1]+1):length(TRT)),i]
+  # unequal var
+  ttest = t.test(consentration1,consentration2,var.equal = F)
+  raw_p_t[i] = round(ttest$p.value,4)
+  # equal var
+  ttest_eqvar = t.test(consentration1,consentration2,var.equal = T)
+  raw_p_t_eqvar[i] = round(ttest_eqvar$p.value,4)
+  # log
+  # - 
+  
+  # lmod
   #qqplot = ggplot(data = data.frame(residuals(lmod)), mapping = aes(sample = residuals.lmod.)) + stat_qq_band() + stat_qq_line() + stat_qq_point()+ ggtitle(allnames_label[i])+labs(x = "Theoretical Quantiles", y = "Sample Quantiles")
   #all_qnorm[[i]] <- qqplot
   #resid_plot = ggplot(augment(lmod), aes(x = .fitted, y = .resid)) + geom_point()+ggtitle(allnames_label[i])
   #all_resid[[i]] <- resid_plot
 }
-colnames(datExpr_metab[raw_p_t < 0.01])
-colnames(datExpr_metab[raw_p_t < 0.05])
-summary(raw_p_t)
-#
-colnames(datExpr_metab[raw_p < 0.01])
-colnames(datExpr_metab[raw_p < 0.05])
-which(raw_p_t < 0.05)
+
+library(tidyverse)
+out = data.frame(metab_names,p_t = as.numeric(raw_p_t),p_t_eqvar = as.numeric(raw_p_t_eqvar))
+head(out,10)
+out %>% 
+  dplyr::filter(p_t<= 0.05 | p_t_eqvar <= 0.05)
+
+# C16.2.OH  - Hydroxyhexadecadienyl-L-carnitine
+# PC.aa.C36.6 - Phosphatidylcholine (2x O-acyl) PC aa C36:6
+# PC.ae.C36.4 - Phosphatidylcholine (1x O-acyl, 1x O-alkyl) PC ae C36:4
+
+
+# sig items
+try1 = 'C16.2.OH'
+try2 = 'PC.aa.C36.6' # maybe not ok?
+try3 =  'PC.ae.C36.4' # maybe not ok
+
+# ok items
+try4 = 'Cit' # citrulline ok
+
+# not ok items
+try5 = 'Creatinine'
+try6 = 'Glu' # Glutamate
+try7 = 'C5.DC..C6.OH.' # glutarylcarnitine
+try8 = 'PC.ae.C36.0' 
+try9 = 'SM.C22.3'
+
+test1 = datExpr_metab[,which(names(datExpr_metab) == try9)][1:7]
+test2 = datExpr_metab[,which(names(datExpr_metab) == try9)][8:14]
+boxplot(test1,test2)
+t.test(test1,test2,var.equal = T)
+t.test(test1,test2,var.equal = F)
+t.test(log(test1),log(test2),var.equal = T)
+t.test(log(test1),log(test2),var.equal = F)
+dev.off()
+
 
 
 #############     integrate multi omics   ################
